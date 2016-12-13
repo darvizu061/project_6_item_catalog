@@ -1,0 +1,16 @@
+.banner{
+  background-color: #678D58;
+  padding-top:20px;
+  padding-bottom:20px;
+}
+.banner h1{
+  margin-top: 0;
+  margin-bottom: 0;
+  color: #fff;
+}
+.positive{
+  color: #68c934;
+}
+.btn-danger{
+  padding: 2px 4px;
+}

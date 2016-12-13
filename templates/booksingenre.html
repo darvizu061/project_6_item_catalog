@@ -1,0 +1,24 @@
+{% extends "_wrapper.html" %}
+{% block content %}
+<div class="text-center banner">
+  <h1>{{ genre.name }}</h1>
+</div>
+{% if user.get('username') != None %}
+<h5 class="positive"><i class="fa fa-plus" aria-hidden="true"></i><a href="{{url_for('newBookItem', genre_id = genre.id)}}"> Add New {{genre.name}} Book</a></h5>
+{% endif %}
+{% for book in books %}
+  <div class="col-sm-3 col-xs-2 text-center">
+    <div class="genreblock">
+      <h4>{{book.name}}</h4>
+      <p>{{book.description}}</p>
+      <p>{{book.price}}</p>
+      <p>{{book.author}}</p>
+      <p>{{book.year_published}}</p>
+      {% if user.get('username') != None %}
+        <a href="{{url_for('editBookItem', genre_id = genre.id, book_item_id = book.id)}}" class="btn btn-default">Edit</a>
+        <a href="{{url_for('deleteBookItem', genre_id = genre.id, book_item_id = book.id)}}" class="btn btn-danger"><i class="fa fa-trash-o fa-sm"></i></a>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

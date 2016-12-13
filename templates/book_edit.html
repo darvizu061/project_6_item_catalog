@@ -1,0 +1,26 @@
+{% extends "_wrapper.html" %}
+{% block content %}
+<div class="text-center banner">
+  <h1>Edit Book</h1>
+</div>
+</br>
+<form action="#" method = "post">
+  <label>Name:</label>
+  <input type ="text" class="form-control" maxlength="30" name="name" value="{{item.name}}">
+  <br />
+  <label>Description:</label>
+  <input type="textarea" class="form-control" name="description" value="{{item.description}}">
+  <br />
+  <label>Price:</label>
+  <input type ="text" class="form-control" maxlength="30" name="price" value="{{item.price}}">
+  <br />
+  <label>Author:</label>
+  <input type ="text" class="form-control" maxlength="30" name="author" value="{{item.author}}">
+  <br />
+  <label>Year Published:</label>
+  <input type ="text" class="form-control" maxlength="30" name="year" value="{{item.year_published}}">
+  </br>
+  <button type="submit" class="btn btn-primary" type="submit">Save</button>
+  <a href="{{url_for('genreBooks', genre_id=genre_id )}}" class="btn btn-default">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "_wrapper.html" %}
+{% block content %}
+<div class="text-center banner">
+  <h1>All Genres</h1>
+</div>
+{% if user.get('username') != None %}
+<h5 class="positive"><i class="fa fa-plus" aria-hidden="true"></i><a href="/genre/new"> Create New Genre</a></h5>
+{% endif %}
+{% for genre in genres %}
+  <div class="col-sm-4 col-xs-2 text-center">
+    <div class="genreblock">
+      <h2>{{genre.name}}</h2>
+      <h6><a href='{{url_for('genreBooks', genre_id = genre.id)}}'>View All Books</a></h6>
+      {% if user.get('username') != None %}
+      <a class="btn btn-default btn-sm" href='{{url_for('editGenre', genre_id = genre.id)}}'>Edit</a>
+      <a class="btn btn-danger" href='{{url_for('deleteGenre', genre_id = genre.id)}}'><i class="fa fa-trash-o fa-sm"></i></a>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

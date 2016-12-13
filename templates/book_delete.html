@@ -1,0 +1,13 @@
+{% extends "_wrapper.html" %}
+{% block content %}
+<div class="text-center banner">
+  <h1>Delete Book</h1>
+</div>
+</br>
+<form action="#" method = "post">
+  <label>Are you sure you want to delete {{item.name}}?</label></label>
+  <br />
+  <button type="submit" class="btn btn-danger" type="submit">Delete</button>
+  <a href="{{url_for('genreBooks', genre_id=genre_id )}}" class="btn btn-default">Cancel</a>
+</form>
+{% endblock %}

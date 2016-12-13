@@ -1,0 +1,21 @@
+{% extends "_wrapper.html" %}
+{% block content %}
+<div class="text-center banner">
+  <h1>Add New Book</h1>
+</div>
+</br>
+<form action="#" method = "post">
+  <input type ="text" class="form-control" maxlength="30" name="name" placeholder="Book Name">
+  <br />
+  <input type="textarea" class="form-control" name="description" placeholder="Description of Book">
+  <br />
+  <input type ="text" class="form-control" maxlength="30" name="price" placeholder="Price">
+  <br />
+  <input type ="text" class="form-control" maxlength="30" name="author" placeholder="Author">
+  <br />
+  <input type ="text" class="form-control" maxlength="30" name="year" placeholder="Year Published">
+  </br>
+  <button type="submit" class="btn btn-success" type="submit">Create</button>
+  <a href="{{url_for('genreBooks', genre_id=genre_id )}}" class="btn btn-default">Cancel</a>
+</form>
+{% endblock %}
