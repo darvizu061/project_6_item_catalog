@@ -3,10 +3,13 @@ from flask import jsonify, make_response
 from flask import session as login_session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database_setup import Genre, BookItem, Base
-import random, string, httplib2, json, requests
+from database_setup import Genre, BookItem, Base, User
+import random
+import string
+import httplib2
+import json
+import requests
 from oauth2client.client import flow_from_clientsecrets, FlowExchangeError
-
 
 # --------------------------------------------------
 #                App Configuration
@@ -20,9 +23,34 @@ session = DBSession()
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
+
+
+def createUser(login_session):
+    newUser = User(name=login_session['username'],
+                   email=login_session['email'],
+                   picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+
+def getUserInfo(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+
+def getUserID(email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user
+    except:
+        return None
 # --------------------------------------------------
 #                OAuth Login Routes
 # --------------------------------------------------
+
+
 @app.route('/login')
 def login():
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
@@ -85,8 +113,7 @@ def gconnect():
     stored_credentials = login_session.get('credentials')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
-                                 200)
+        response = make_response(json.dumps('User is already connected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -105,13 +132,25 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
+    # See if user exists. If not, make a new User account
+    user_id = getUserID(login_session['email'])
+    if not user_id:
+        user_id = createUser(login_session)
+
+    login_session['user_id'] = user_id
+
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ''' "style="
+               width: 300px;
+               height: 300px;
+               border-radius:150px;
+               -webkit-border-radius: 150px;
+               -moz-border-radius: 150px;">'''
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
@@ -126,35 +165,39 @@ def gdisconnect():
     print 'User name is: '
     print login_session['username']
     if access_token is None:
- 	print 'Access Token is None'
-    	response = make_response(json.dumps('Current user not connected.'), 401)
-    	response.headers['Content-Type'] = 'application/json'
-    	return response
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session.get('credentials').access_token
+        print 'Access Token is None'
+        response = make_response(json.dumps('Current user not connected.'),
+                                 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    string = 'https://accounts.google.com/o/oauth2/revoke?token=%s'
+    url = string % login_session.get('credentials').access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
     print 'result is '
     print result
     if result['status'] == '200':
-	del login_session.get('credentials').access_token
-    	del login_session['gplus_id']
-    	del login_session['username']
-    	del login_session['email']
-    	del login_session['picture']
-    	response = make_response(json.dumps('Successfully disconnected.'), 200)
-    	response.headers['Content-Type'] = 'application/json'
-    	return response
+        del login_session.get('credentials').access_token
+        del login_session['gplus_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        response = make_response(json.dumps('Successfully disconnected.'), 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
     else:
 
-    	response = make_response(json.dumps('Failed to revoke token for given user.', 400))
-    	response.headers['Content-Type'] = 'application/json'
-    	return response
+        response = make_response(json.dumps('Failed to revoke token for user.',
+                                 400))
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
 
 # --------------------------------------------------
 #                API ENDPOINT
 # --------------------------------------------------
-@app.route('/genres/JSON')
+@app.route('/allgenres/JSON')
 def genreJSON():
     genres = session.query(Genre).all()
     return jsonify(Genres=[i.serialize for i in genres])
@@ -171,6 +214,12 @@ def genreBooksJSON(genre_id):
 def allBooksJSON():
     books = session.query(BookItem).all()
     return jsonify(AllBooks=[i.serialize for i in books])
+
+
+@app.route('/book/<int:book_id>/JSON')
+def bookJSON(book_id):
+    book = session.query(BookItem).filter_by(id=book_id).one()
+    return jsonify(Book=book.serialize)
 
 
 # --------------------------------------------------
@@ -203,7 +252,8 @@ def newGenre():
     if 'username' not in login_session:
         return redirect('/login')
     if request.method == 'POST':
-        newGenre = Genre(name=request.form['name'])
+        newGenre = Genre(name=request.form['name'],
+                         user_id=login_session['user_id'])
         session.add(newGenre)
         session.commit()
         flash("new Genre created!")
@@ -226,6 +276,10 @@ def editGenre(genre_id):
         flash("Genre name has been edited!")
         return redirect(url_for('homepage'))
     else:
+        editGenre = session.query(Genre).filter_by(id=genre_id).one()
+        # If logged user is NOT the creater of the genre
+        if editGenre.user_id != login_session['user_id']:
+            return "ERROR: NOT AUTHORIZED"
         return render_template('genre_edit.html',
                                genre_id=genre_id,
                                i=editGenre,
@@ -243,6 +297,10 @@ def deleteGenre(genre_id):
         flash("Genre has been deleted!")
         return redirect(url_for('homepage'))
     else:
+        deleteGenre = session.query(Genre).filter_by(id=genre_id).one()
+        # If logged user is NOT the creater of the genre
+        if deleteGenre.user_id != login_session['user_id']:
+            return "ERROR: NOT AUTHORIZED"
         return render_template('genre_delete.html',
                                genre_id=genre_id,
                                i=deleteGenre,
@@ -259,7 +317,8 @@ def newBookItem(genre_id):
                                price=request.form['price'],
                                author=request.form['author'],
                                year_published=request.form['year'],
-                               genre_id=genre_id)
+                               genre_id=genre_id,
+                               user_id=login_session['user_id'])
         session.add(newBookItem)
         session.commit()
         flash("New Book has been added!")
@@ -277,7 +336,7 @@ def newBookItem(genre_id):
 def editBookItem(genre_id, book_item_id):
     if 'username' not in login_session:
         return redirect('/login')
-    editedBook = session.query(BookItem).filter_by(id=genre_id).one()
+    editedBook = session.query(BookItem).filter_by(id=book_item_id).one()
     if request.method == 'POST':
         if request.form['name']:
             editedBook.name = request.form['name']
@@ -290,6 +349,9 @@ def editBookItem(genre_id, book_item_id):
         flash("Book has been edited!")
         return redirect(url_for('genreBooks', genre_id=genre_id))
     else:
+        editedBook = session.query(BookItem).filter_by(id=book_item_id).one()
+        if editedBook.user_id != login_session['user_id']:
+            return "ERROR: NOT AUTHORIZED"
         return render_template('book_edit.html',
                                genre_id=genre_id,
                                book_item_id=book_item_id,
@@ -309,6 +371,9 @@ def deleteBookItem(genre_id, book_item_id):
         flash("Book has been deleted!")
         return redirect(url_for('genreBooks', genre_id=genre_id))
     else:
+        deletedBook = session.query(BookItem).filter_by(id=book_item_id).one()
+        if deletedBook.user_id != login_session['user_id']:
+            return "ERROR: NOT AUTHORIZED"
         return render_template('book_delete.html',
                                genre_id=genre_id,
                                book_item_id=book_item_id,

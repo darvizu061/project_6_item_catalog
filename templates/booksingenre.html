@@ -14,7 +14,7 @@
       <p>{{book.price}}</p>
       <p>{{book.author}}</p>
       <p>{{book.year_published}}</p>
-      {% if user.get('username') != None %}
+      {% if user.get('user_id') == book.user_id %}
         <a href="{{url_for('editBookItem', genre_id = genre.id, book_item_id = book.id)}}" class="btn btn-default">Edit</a>
         <a href="{{url_for('deleteBookItem', genre_id = genre.id, book_item_id = book.id)}}" class="btn btn-danger"><i class="fa fa-trash-o fa-sm"></i></a>
       {% endif %}
